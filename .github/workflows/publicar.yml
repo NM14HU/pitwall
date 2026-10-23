@@ -1,0 +1,62 @@
+# Pit Wall: genera las noticias y el Mundial cada hora y publica la web en GitHub Pages
+name: Actualizar y publicar Pit Wall
+
+on:
+  schedule:
+    - cron: "7 * * * *"      # cada hora, en el minuto 7 (hora UTC)
+  workflow_dispatch:          # botón para lanzarlo a mano desde la pestaña Actions
+  push:
+    branches: [main]          # y cada vez que subas cambios
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+
+    steps:
+      - name: Descargar el proyecto
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Recupera los datos y cachés de la ejecución anterior: si un día fallan
+      # todos los feeds, la web sigue mostrando las últimas noticias
+      - name: Recuperar datos anteriores
+        uses: actions/cache@v4
+        with:
+          path: |
+            web/data/noticias.json
+            web/data/mundial.json
+            generador/cache-imagenes.json
+            generador/cache-circuitos.geojson
+          key: datos-${{ github.run_id }}
+          restore-keys: datos-
+
+      - name: Ejecutar el generador
+        run: dotnet run --project generador -c Release
+
+      - name: Preparar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir la web
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Publicar
+        id: despliegue
+        uses: actions/deploy-pages@v4
