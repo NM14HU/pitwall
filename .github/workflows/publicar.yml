@@ -3,7 +3,8 @@ name: Actualizar y publicar Pit Wall
 
 on:
   schedule:
-    - cron: "7 * * * *"      # cada hora, en el minuto 7 (hora UTC)
+    - cron: "7,37 * * * *"   # cada media hora, en los minutos 7 y 37
+
   workflow_dispatch:          # botón para lanzarlo a mano desde la pestaña Actions
   push:
     branches: [main]          # y cada vez que subas cambios
