@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+<rect width="800" height="450" fill="#3a3020"/>
+<rect y="300" width="800" height="150" fill="#4a4036"/>
+<g fill="#F5A300"><rect x="0" y="292" width="40" height="10"/><rect x="80" y="292" width="40" height="10"/><rect x="160" y="292" width="40" height="10"/><rect x="240" y="292" width="40" height="10"/><rect x="320" y="292" width="40" height="10"/><rect x="400" y="292" width="40" height="10"/><rect x="480" y="292" width="40" height="10"/><rect x="560" y="292" width="40" height="10"/><rect x="640" y="292" width="40" height="10"/><rect x="720" y="292" width="40" height="10"/></g>
+<g fill="#f2f2f2"><rect x="40" y="292" width="40" height="10"/><rect x="120" y="292" width="40" height="10"/><rect x="200" y="292" width="40" height="10"/><rect x="280" y="292" width="40" height="10"/><rect x="360" y="292" width="40" height="10"/><rect x="440" y="292" width="40" height="10"/><rect x="520" y="292" width="40" height="10"/><rect x="600" y="292" width="40" height="10"/><rect x="680" y="292" width="40" height="10"/><rect x="760" y="292" width="40" height="10"/></g>
+<g stroke="#9fb3c8" stroke-width="3" opacity=".45"></g>
+<g transform="translate(150 225)">
+<rect x="0" y="40" width="44" height="46" fill="#F5A300"/><rect x="-8" y="30" width="60" height="14" fill="#111"/>
+<polygon points="40,84 120,52 300,60 460,72 520,90 460,104 60,104" fill="#F5A300"/>
+<polygon points="220,60 262,30 300,30 316,60" fill="#111"/><rect x="290" y="40" width="30" height="8" fill="#F5A300"/>
+<rect x="480" y="90" width="70" height="10" fill="#111"/>
+<circle cx="110" cy="106" r="36" fill="#111"/><circle cx="110" cy="106" r="14" fill="#555"/>
+<circle cx="420" cy="106" r="32" fill="#111"/><circle cx="420" cy="106" r="12" fill="#555"/>
+</g>
+<ellipse cx="410" cy="372" rx="270" ry="10" fill="#000" opacity=".25"/>
+</svg>

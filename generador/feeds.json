@@ -1,0 +1,117 @@
+// =============================================================
+//  Configuración del generador de Pit Wall
+//  - Para desactivar un feed sin borrarlo: "activo": false
+//  - "secciones": a qué secciones van sus noticias por defecto
+//  - "filtrar": true → feed general de motor; solo se quedan las
+//    noticias que hablen de F1, F2, F3, Fórmula E, Alonso o Sainz
+//  - "exigirMencion": true → la noticia solo entra si su titular nombra
+//    la sección (búsquedas de Google, que encuentran artículos que
+//    mencionan al piloto en cualquier parte aunque no traten de él)
+//  - "urlContiene": "/formula-e/" → solo noticias cuya dirección lo
+//    contenga (Motorsport.com cuela artículos de otras categorías)
+//  - "maximo": 10 → solo las 10 noticias más recientes de ese feed
+// =============================================================
+{
+  "salida": "../web/data/noticias.json",
+  "maxNoticias": 300,       // total máximo de noticias en la web
+  "maxPorSeccion": 40,      // cada sección guarda sus 40 más recientes
+  "diasMaximos": 60,
+
+  // Qué se muestra de cada noticia: "resumen" = "completo", "corto" o "no"; "imagenes" = true o false
+  "resumen": "completo",
+  "imagenes": true,
+  "buscarImagenEnArticulo": true,   // si el feed no trae foto, la busca en la página de la noticia
+
+  // Mundial de F1: clasificaciones, calendario y próxima carrera (API de Jolpica)
+  "mundial": {
+    "activo": true,
+    "salida": "../web/data/mundial.json",
+    "api": "https://api.jolpi.ca/ergast/f1",
+    "circuitos": "https://raw.githubusercontent.com/bacinger/f1-circuits/master/f1-circuits.geojson",
+    // Color de cada equipo en la clasificación (por su identificador en la API)
+    "coloresEquipos": {
+      "mclaren": "#FF8000", "ferrari": "#E8002D", "red_bull": "#3671C6", "mercedes": "#27F4D2",
+      "aston_martin": "#229971", "williams": "#64C4FF", "alpine": "#FF87BC", "rb": "#6692FF",
+      "haas": "#B6BABD", "sauber": "#52E252", "audi": "#9B0F1E", "cadillac": "#4A4F55"
+    }
+  },
+
+  // Nombres de medio que llegan escritos de otra forma (sobre todo desde Google Noticias)
+  // y cómo deben aparecer en la web. Las diferencias de mayúsculas ("MARCA") se corrigen solas.
+  "nombresMedios": {
+    "Diario AS": "AS",
+    "AS.com": "AS",
+    "SoyMotor.com": "SoyMotor",
+    "Motorsport.com España": "Motorsport.com",
+    "Motorsport.com - España": "Motorsport.com",
+    "Motorsport.com ES": "Motorsport.com",
+    "ABC.es": "ABC",
+    "Diario ABC": "ABC",
+    "Mundo Deportivo": "Mundo Deportivo",
+    "RTVE.es": "RTVE",
+    "El Confidencial": "El Confidencial",
+    "Diariomotor": "Diario Motor",
+    "Motorpasion": "Motorpasión",
+    "Motorpasión.com": "Motorpasión",
+    "DAZN España": "DAZN"
+  },
+
+  // Palabras que identifican cada sección en titulares y resúmenes
+  "reglas": {
+    "F1":     { "incluir": ["F1", "Fórmula 1", "Formula 1", "Formula One", "Gran Premio", "Grand Prix"] },
+    "F2":     { "incluir": ["F2", "Fórmula 2", "Formula 2"] },
+    "F3":     { "incluir": ["F3", "Fórmula 3", "Formula 3"] },
+    "FE":     { "incluir": ["Fórmula E", "Formula E", "ePrix", "E-Prix"] },
+    "Alonso": { "incluir": ["Alonso", "Fernando Alonso"] },
+    "Sainz":  { "incluir": ["Sainz", "Carlos Sainz"], "excluir": ["Dakar", "rally", "rallye", "raid", "Sainz Sr", "Sainz padre"] }
+  },
+
+  "feeds": [
+    // ---------- En español ----------
+    { "medio": "Motorsport.com", "url": "https://es.motorsport.com/rss/f1/news/",         "secciones": ["F1"], "urlContiene": "/f1/" },
+    { "medio": "Motorsport.com", "url": "https://es.motorsport.com/rss/formula-e/news/",  "secciones": ["FE"], "urlContiene": "/formula-e/" },
+    // SoyMotor: su feed propio dejó de actualizarse en enero de 2026; se leen sus noticias a través de Google Noticias
+    { "medio": "SoyMotor",       "url": "https://soymotor.com/rss.xml",                    "secciones": ["F1"], "activo": false },
+    { "medio": "SoyMotor",       "url": "https://news.google.com/rss/search?q=site:soymotor.com&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["F1"], "filtrar": true, "medioDesdeNoticia": true },
+    { "medio": "Marca",          "url": "https://e00-marca.uecdn.es/rss/motor/formula1.xml", "secciones": ["F1"] },
+    { "medio": "AS",             "url": "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/motor/subsection/formula_1/", "secciones": ["F1"] },
+    // ABC publica poco en su feed de F1, pero funciona (las fotos se toman de cada artículo)
+    { "medio": "ABC",            "url": "https://www.abc.es/rss/atom/deportes/formula-1/", "secciones": ["F1"] },
+    // Mundo Deportivo: bloquea los lectores automáticos (error 403) → a través de Google Noticias
+    { "medio": "Mundo Deportivo", "url": "https://www.mundodeportivo.com/feed/rss/motor/formula-1", "secciones": ["F1"], "activo": false },
+    { "medio": "Mundo Deportivo", "url": "https://news.google.com/rss/search?q=site:mundodeportivo.com/motor/f1&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["F1"], "medioDesdeNoticia": true, "maximo": 15 },
+    { "medio": "Car and Driver", "url": "https://www.caranddriver.com/es/rss/all.xml/",    "secciones": [], "filtrar": true },
+    { "medio": "Motor.es",       "url": "https://www.motor.es/feed/",                      "secciones": [], "filtrar": true },
+    { "medio": "Motorpasión",    "url": "https://www.motorpasion.com/feedburner.xml",      "secciones": [], "filtrar": true },
+
+    // Google Noticias, solo de medios españoles (lista de "site:" en la búsqueda) y como mucho
+    // las N más recientes de cada búsqueda ("maximo"), para no llenar la web de la misma noticia repetida
+    { "medio": "Google Noticias", "url": "https://news.google.com/rss/search?q=%22Fernando+Alonso%22+%28site:marca.com+OR+site:as.com+OR+site:mundodeportivo.com+OR+site:soymotor.com+OR+site:es.motorsport.com+OR+site:motor.es+OR+site:diariomotor.com+OR+site:abc.es+OR+site:elmundo.es+OR+site:elconfidencial.com+OR+site:sport.es+OR+site:lavanguardia.com+OR+site:elespanol.com+OR+site:20minutos.es+OR+site:rtve.es+OR+site:antena3.com+OR+site:dazn.com%29&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["Alonso"], "medioDesdeNoticia": true, "exigirMencion": true, "maximo": 20 },
+    { "medio": "Google Noticias", "url": "https://news.google.com/rss/search?q=%22Carlos+Sainz%22+-Dakar+-rally+%28site:marca.com+OR+site:as.com+OR+site:mundodeportivo.com+OR+site:soymotor.com+OR+site:es.motorsport.com+OR+site:motor.es+OR+site:diariomotor.com+OR+site:abc.es+OR+site:elmundo.es+OR+site:elconfidencial.com+OR+site:sport.es+OR+site:lavanguardia.com+OR+site:elespanol.com+OR+site:20minutos.es+OR+site:rtve.es+OR+site:antena3.com+OR+site:dazn.com%29&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["Sainz"], "medioDesdeNoticia": true, "exigirMencion": true, "maximo": 20 },
+    { "medio": "Google Noticias", "url": "https://news.google.com/rss/search?q=%22F%C3%B3rmula+2%22+%28site:marca.com+OR+site:as.com+OR+site:mundodeportivo.com+OR+site:soymotor.com+OR+site:es.motorsport.com+OR+site:motor.es+OR+site:diariomotor.com+OR+site:abc.es+OR+site:elmundo.es+OR+site:elconfidencial.com+OR+site:sport.es+OR+site:lavanguardia.com+OR+site:elespanol.com+OR+site:20minutos.es+OR+site:rtve.es+OR+site:antena3.com+OR+site:dazn.com%29&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["F2"], "medioDesdeNoticia": true, "exigirMencion": true, "maximo": 10 },
+    { "medio": "Google Noticias", "url": "https://news.google.com/rss/search?q=%22F%C3%B3rmula+3%22+%28site:marca.com+OR+site:as.com+OR+site:mundodeportivo.com+OR+site:soymotor.com+OR+site:es.motorsport.com+OR+site:motor.es+OR+site:diariomotor.com+OR+site:abc.es+OR+site:elmundo.es+OR+site:elconfidencial.com+OR+site:sport.es+OR+site:lavanguardia.com+OR+site:elespanol.com+OR+site:20minutos.es+OR+site:rtve.es+OR+site:antena3.com+OR+site:dazn.com%29&hl=es&gl=ES&ceid=ES:es",
+      "secciones": ["F3"], "medioDesdeNoticia": true, "exigirMencion": true, "maximo": 10 },
+
+    // F2 y F3 de Motorsport.com (su sección ahora se llama fia-f2 / fia-f3)
+    { "medio": "Motorsport.com", "url": "https://es.motorsport.com/rss/fia-f2/news/",    "secciones": ["F2"], "urlContiene": "/fia-f2/" },
+    { "medio": "Motorsport.com", "url": "https://es.motorsport.com/rss/fia-f3/news/",    "secciones": ["F3"], "activo": false },   // no existe (404)
+
+    // ---------- En inglés (en la web se ven al elegir «Todas») ----------
+    { "medio": "Formula1.com",   "url": "https://www.formula1.com/en/latest/all.xml",      "secciones": ["F1"], "idioma": "en" },
+    { "medio": "The Race",       "url": "https://the-race.com/category/formula-1/feed/",   "secciones": ["F1"], "idioma": "en" },
+    { "medio": "BBC Sport",      "url": "https://feeds.bbci.co.uk/sport/formula1/rss.xml", "secciones": ["F1"], "idioma": "en" },
+    { "medio": "Motorsport.com", "url": "https://www.motorsport.com/rss/fia-f2/news/",     "secciones": ["F2"], "idioma": "en", "urlContiene": "/fia-f2/" },
+    { "medio": "Motorsport.com", "url": "https://www.motorsport.com/rss/fia-f3/news/",     "secciones": ["F3"], "idioma": "en", "urlContiene": "/fia-f3/" },
+    { "medio": "The Race",       "url": "https://the-race.com/category/formula-e/feed/",   "secciones": ["FE"], "idioma": "en" },
+
+    // ---------- Desactivados ----------
+    // Feeds antiguos de F2 y F3 de Motorsport.com: abandonados (última noticia en 2017 y abril de 2026)
+    { "medio": "Motorsport.com", "url": "https://www.motorsport.com/rss/f2/news/",        "secciones": ["F2"], "idioma": "en", "activo": false },
+    { "medio": "Motorsport.com", "url": "https://www.motorsport.com/rss/f3/news/",        "secciones": ["F3"], "idioma": "en", "activo": false }
+  ]
+}

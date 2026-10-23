@@ -1,0 +1,18 @@
+# Documentos personales: nunca se suben
+documentos/
+
+# Archivos de compilación de .NET
+generador/bin/
+generador/obj/
+
+# Cachés del generador
+generador/cache-imagenes.json
+generador/cache-circuitos.geojson
+
+# Datos generados: los creará GitHub cada hora
+web/data/noticias.json
+web/data/mundial.json
+
+# Archivos del sistema y del editor
+.DS_Store
+.vscode/
