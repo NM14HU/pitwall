@@ -9,7 +9,7 @@
    Si cambias la lista de archivos, sube el número de VERSION.
    ========================================================= */
 
-const VERSION = "pitwall-v7";
+const VERSION = "pitwall-v9";
 const CACHE_WEB = `${VERSION}-web`;
 const CACHE_FOTOS = `${VERSION}-fotos`;
 const MAX_FOTOS = 80;
@@ -21,9 +21,10 @@ const ARCHIVOS_WEB = [
   "js/app.js",
   "data/noticias.json",
   "data/mundial.json",
+  "data/campeonatos.json",
   "img/sin-foto.svg",
-  "img/favicon.svg",
-  "img/iconos/icono-192.png",
+  "img/favicon-v2.svg",
+  "img/iconos/v2/icono-192.png",
   "manifest.webmanifest"
 ];
 

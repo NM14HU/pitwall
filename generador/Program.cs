@@ -144,6 +144,12 @@ async Task GenerarNoticiasAsync()
 
     Console.WriteLine();
     Console.WriteLine($"Guardadas {finales.Count} noticias en {archivoSalida}");
+
+    // Origen de las noticias publicadas: directas de los medios o a través de Google Noticias
+    int porGoogle = finales.Count(n => n.Url.Contains("news.google.com", StringComparison.OrdinalIgnoreCase));
+    Console.WriteLine($"   Directas de los medios   {finales.Count - porGoogle,4}");
+    Console.WriteLine($"   Por Google Noticias      {porGoogle,4}");
+    Console.WriteLine("Por secciones:");
     foreach (var grupo in finales.SelectMany(n => n.Etiquetas).GroupBy(e => e).OrderBy(g => Clasificador.Orden(g.Key)))
         Console.WriteLine($"   {grupo.Key,-7} {grupo.Count(),4}");
 }

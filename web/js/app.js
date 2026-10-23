@@ -109,6 +109,19 @@ function destacada(n) {
 
 /* ---------- Vistas ---------- */
 
+// Hora de la última actualización junto a «Lo último» (solo se ve en el móvil, donde la cabecera no tiene sitio)
+const fmtSoloHora = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: ZONA });
+const fmtDiaHora = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONA });
+function horaActualizacion() {
+  if (!estado.actualizado) return "";
+  const fecha = new Date(estado.actualizado);
+  const mismoDia = new Intl.DateTimeFormat("es-ES", { dateStyle: "short", timeZone: ZONA });
+  const texto = mismoDia.format(fecha) === mismoDia.format(new Date())
+    ? `Actualizado a las ${fmtSoloHora.format(fecha)}`
+    : `Actualizado el ${fmtDiaHora.format(fecha)}`;
+  return `<span class="actualizado-movil">${texto}</span>`;
+}
+
 function vistaPortada() {
   // La destacada es la noticia de F1 más reciente que tenga foto
   const todas = visibles();
@@ -121,7 +134,7 @@ function vistaPortada() {
   let html = destacada(primera);
   html += `
     <section class="seccion">
-      <div class="seccion-cab"><h2>Lo último</h2></div>
+      <div class="seccion-cab"><h2>Lo último</h2>${horaActualizacion()}</div>
       <div class="rejilla">${resto.slice(0, 6).map(tarjeta).join("")}</div>
     </section>`;
 
@@ -641,6 +654,7 @@ async function cargarDatos() {
     if (huella === estado.huella) { estado.ultimaCarga = Date.now(); return; }
     estado.huella = huella;
     estado.noticias = datos.noticias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    estado.actualizado = datos.ejemplo ? null : datos.actualizado;
     estado.mundial = mundial;
     estado.campeonatos = otros?.campeonatos ?? [];
     estado.ultimaCarga = Date.now();

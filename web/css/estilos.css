@@ -610,6 +610,9 @@ h1, h2, h3 {
 
 .tarjeta-campeonato { display: none; }
 
+/* Hora de actualización junto a «Lo último»: solo en pantallas estrechas */
+.actualizado-movil { display: none; font-size: 0.8rem; color: var(--texto-suave); }
+
 /* ---------- Pie ---------- */
 .pie {
   border-top: 1px solid var(--linea);
@@ -788,6 +791,7 @@ h1, h2, h3 {
 
 @media (max-width: 440px) {
   .actualizado { display: none; }
+  .actualizado-movil { display: inline; }
 }
 
 @media (prefers-reduced-motion: reduce) {
