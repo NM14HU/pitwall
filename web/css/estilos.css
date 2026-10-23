@@ -578,6 +578,38 @@ h1, h2, h3 {
 
 .aviso-datos { margin: 0; font-size: 0.8rem; color: var(--texto-suave); text-align: center; }
 
+/* ---------- Campeonatos: pestañas, nota y tarjeta compacta del móvil ---------- */
+.pestanas-mundial {
+  display: flex;
+  gap: 6px;
+  background: var(--asfalto);
+  border-radius: 999px;
+  padding: 4px;
+}
+.pestanas-mundial button {
+  flex: 1;
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  padding: 7px 0;
+  font-family: var(--f-titulos);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+.pestanas-mundial button[aria-selected="true"] { background: var(--color); color: #fff; }
+
+.campeonato-nombre {
+  margin: 0 0 2px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--acento, var(--texto-suave));
+}
+.bloque-cab .nota { font-size: 0.8rem; color: var(--texto-suave); }
+.nota-torre { margin: 6px 0 0; text-align: right; font-size: 0.8rem; color: var(--texto-suave); }
+
+.tarjeta-campeonato { display: none; }
+
 /* ---------- Pie ---------- */
 .pie {
   border-top: 1px solid var(--linea);
@@ -696,6 +728,33 @@ h1, h2, h3 {
   body.ver-mundial .principal { display: none; }
 
   .destacada .foto { aspect-ratio: 4 / 3; }
+
+  /* Tarjeta compacta del campeonato, arriba de la portada y de las secciones F1, F2, F3 y FE */
+  .tarjeta-campeonato {
+    display: block;
+    background: var(--asfalto);
+    border-left: 5px solid var(--color);
+    border-radius: 0 var(--radio) var(--radio) 0;
+    padding: 14px 16px 12px;
+    margin-bottom: 22px;
+  }
+  .tc-titulo { margin: 0 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--texto-suave); }
+  .tarjeta-campeonato .proxima h2, .tc-plegada h2 { font-size: 1.5rem; }
+  .tc-plegada .ronda, .tc-plegada .lugar { margin: 0; font-size: 0.85rem; color: var(--texto-suave); }
+  .tc-plegada .torre { margin-top: 6px; }
+  .tc-completo .bloque { background: none; padding: 10px 0 4px; border-radius: 0; }
+  .tc-completo .bloque + .bloque { border-top: 1px solid var(--linea); }
+  .tc-boton {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    border: 0;
+    border-radius: 999px;
+    padding: 9px;
+    background: var(--asfalto-alto);
+    color: var(--rojo);
+    font-weight: 600;
+  }
   .destacada .cuerpo { padding: 60px 18px 18px; }
 }
 

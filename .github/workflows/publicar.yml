@@ -42,6 +42,7 @@ jobs:
           path: |
             web/data/noticias.json
             web/data/mundial.json
+            web/data/campeonatos.json
             generador/cache-imagenes.json
             generador/cache-circuitos.geojson
           key: datos-${{ github.run_id }}

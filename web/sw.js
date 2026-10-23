@@ -9,7 +9,7 @@
    Si cambias la lista de archivos, sube el número de VERSION.
    ========================================================= */
 
-const VERSION = "pitwall-v4";
+const VERSION = "pitwall-v7";
 const CACHE_WEB = `${VERSION}-web`;
 const CACHE_FOTOS = `${VERSION}-fotos`;
 const MAX_FOTOS = 80;

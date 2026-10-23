@@ -38,6 +38,7 @@ public sealed class Configuracion
     public Dictionary<string, Regla> Reglas { get; set; } = [];
     public List<FuenteFeed> Feeds { get; set; } = [];
     public ConfigMundial Mundial { get; set; } = new();
+    public ConfigCampeonatos Campeonatos { get; set; } = new();
 
     /// <summary>Nombres de medio que se sustituyen por otro (p. ej. "Diario AS" → "AS").</summary>
     public Dictionary<string, string> NombresMedios { get; set; } = [];
@@ -115,3 +116,11 @@ public sealed record EntradaFeed(string Titulo, string Resumen, string Url, stri
 
 /// <summary>Resultado de leer un feed: si ha funcionado y qué ha traído.</summary>
 public sealed record ResultadoFeed(FuenteFeed Fuente, bool Ok, string Mensaje, List<EntradaFeed> Entradas);
+
+/// <summary>Otros campeonatos (F2, F3…), dentro de feeds.json.</summary>
+public sealed class ConfigCampeonatos
+{
+    public bool Activo { get; set; } = true;
+    public string Salida { get; set; } = "../web/data/campeonatos.json";
+    public List<ConfigCampeonato> Lista { get; set; } = [];
+}

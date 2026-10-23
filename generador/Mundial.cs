@@ -336,7 +336,10 @@ public static class Traducir
         ["Netherlands"] = "Países Bajos", ["Italy"] = "Italia", ["Azerbaijan"] = "Azerbaiyán", ["Singapore"] = "Singapur",
         ["Mexico"] = "México", ["Brazil"] = "Brasil", ["Qatar"] = "Catar", ["UAE"] = "Emiratos Árabes Unidos",
         ["United Arab Emirates"] = "Emiratos Árabes Unidos", ["Turkey"] = "Turquía", ["France"] = "Francia",
-        ["Germany"] = "Alemania", ["Russia"] = "Rusia"
+        ["Germany"] = "Alemania", ["Russia"] = "Rusia",
+        // Nombres que usan las webs de F2 y F3 en su calendario
+        ["Great Britain"] = "Gran Bretaña", ["Abu Dhabi"] = "Abu Dabi", ["Barcelona-Catalunya"] = "España",
+        ["Miami"] = "Estados Unidos", ["Australia"] = "Australia", ["Austria"] = "Austria"
     };
 
     /// <summary>"Mexico City Grand Prix" → "GP de Ciudad de México".</summary>

@@ -16,3 +16,7 @@ web/data/mundial.json
 # Archivos del sistema y del editor
 .DS_Store
 .vscode/
+
+# Páginas guardadas con --depurar
+generador/depuracion/
+web/data/campeonatos.json

@@ -5,12 +5,15 @@
 //     noticia en sus secciones y escribe ../web/data/noticias.json
 //  2. Mundial: lee clasificaciones y calendario de la API de Jolpica
 //     y los trazados de los circuitos, y escribe ../web/data/mundial.json
+//  3. Campeonatos: lee F2 y F3 de sus webs oficiales y escribe
+//     ../web/data/campeonatos.json
 //
 //  Uso (desde la carpeta generador):
 //     dotnet run                     → genera todo
 //     dotnet run -- --comprobar      → solo comprueba los feeds
 //     dotnet run -- --solo-noticias  → solo noticias.json
-//     dotnet run -- --solo-mundial   → solo mundial.json
+//     dotnet run -- --solo-mundial   → solo mundial.json y campeonatos.json
+//     dotnet run -- --depurar        → guarda las páginas de F2/F3 en generador/depuracion
 // =============================================================
 
 using System.Text.Encodings.Web;
@@ -44,6 +47,10 @@ if (!soloMundial)
 
 if (!soloComprobar && !soloNoticias && config.Mundial.Activo)
     await new GeneradorMundial(http, carpetaProyecto, config.Mundial, opcionesJson).GenerarAsync();
+
+if (!soloComprobar && !soloNoticias && config.Campeonatos.Activo)
+    await new GeneradorCampeonatos(http, carpetaProyecto, config.Campeonatos.Lista, config.Campeonatos.Salida,
+                                   args.Contains("--depurar"), opcionesJson).GenerarAsync();
 
 // -------------------------------------------------------------
 //  Noticias

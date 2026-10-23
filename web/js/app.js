@@ -15,7 +15,10 @@ const SECCIONES = [
 ];
 
 const ZONA = "Europe/Madrid";
-const estado = { noticias: [], mundial: null, filtro: "todo", tabla: "pilotos", idioma: "es", ultimaCarga: 0, huella: "" };
+const estado = {
+  noticias: [], mundial: null, campeonatos: [], filtro: "todo", tabla: "pilotos", idioma: "es",
+  pestanaMundial: "F1", tarjetaAbierta: null, ultimaCarga: 0, huella: ""
+};
 
 const $ = (sel) => document.querySelector(sel);
 const seccion = (id) => SECCIONES.find((s) => s.id === id);
@@ -155,7 +158,7 @@ function fichaPiloto(s) {
 function vistaSeccion(id) {
   const s = seccion(id);
   const suyas = visibles().filter((n) => n.etiquetas.includes(id));
-  let html = s.codigo ? fichaPiloto(s) : "";
+  let html = s.codigo ? fichaPiloto(s) : tarjetaCampeonato();
   html += `
     <section class="seccion">
       <div class="seccion-cab" style="--color:${s.color}"><h2>${esc(s.nombre)}</h2></div>
@@ -169,6 +172,7 @@ function vistaSeccion(id) {
 function pintarPrincipal() {
   const principal = $("#principal");
   principal.innerHTML = seccion(estado.filtro) ? vistaSeccion(estado.filtro) : vistaPortada();
+  actualizarCuenta();
 }
 
 /* ---------- Filtros ---------- */
@@ -192,7 +196,9 @@ function marcarFiltro() {
 function cambiarFiltro(id) {
   estado.filtro = id;
   marcarFiltro();
+  estado.tarjetaAbierta = null;
   pintarPrincipal();
+  pintarLateral();
   history.replaceState(null, "", id === "todo" ? location.pathname : `#${id}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -207,9 +213,21 @@ document.addEventListener("click", (e) => {
   const pestana = e.target.closest("[data-tabla]");
   if (pestana) {
     estado.tabla = pestana.dataset.tabla;
-    document.querySelectorAll("[data-tabla]").forEach((b) =>
-      b.setAttribute("aria-selected", String(b === pestana)));
-    pintarTorre();
+    pintarLateral();
+    if (estado.tarjetaAbierta) pintarPrincipal();
+    return;
+  }
+  const campeonato = e.target.closest("[data-campeonato]");
+  if (campeonato) {
+    estado.pestanaMundial = campeonato.dataset.campeonato;
+    return pintarLateral();
+  }
+  const desplegar = e.target.closest("[data-desplegar]");
+  if (desplegar) {
+    const id = desplegar.dataset.desplegar;
+    estado.tarjetaAbierta = estado.tarjetaAbierta === id ? null : id;
+    pintarPrincipal();
+    if (!estado.tarjetaAbierta) $(".tarjeta-campeonato")?.scrollIntoView({ block: "nearest" });
   }
 });
 
@@ -223,13 +241,65 @@ function cambiarIdioma(idioma, guardar = true) {
   if (estado.noticias.length) pintarPrincipal();
 }
 
-/* ---------- Mundial: próxima carrera, clasificación y calendario ---------- */
+/* ---------- Campeonatos: F1 (mundial.json) y F2/F3 (campeonatos.json) ---------- */
 
-function pintarProxima() {
+const NOMBRES_CAMPEONATO = { F1: "Fórmula 1", F2: "Fórmula 2", F3: "Fórmula 3", FE: "Fórmula E" };
+const otroCampeonato = (id) => estado.campeonatos.find((c) => c.id === id);
+
+// Campeonatos con datos, en el orden de las pestañas
+function campeonatosDisponibles() {
+  return [...(estado.mundial ? ["F1"] : []), ...estado.campeonatos.map((c) => c.id)];
+}
+
+// Qué campeonato acompaña a cada sección: F2, F3 y FE el suyo (aunque aún no tenga datos); el resto, la F1
+function campeonatoDeSeccion(filtro) {
+  return ["F2", "F3", "FE"].includes(filtro) ? filtro : "F1";
+}
+
+const colorCampeonato = (id) => seccion(id)?.color || "var(--c-f1)";
+
+// "27–29 nov" o "30 oct – 1 nov"
+const fmtDiaMes = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+function rangoFechas(inicio, fin) {
+  const a = new Date(`${inicio}T12:00:00`), b = new Date(`${fin}T12:00:00`);
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()}–${fmtDiaMes.format(b)}`
+    : `${fmtDiaMes.format(a)} – ${fmtDiaMes.format(b)}`;
+}
+
+/* --- Cuenta atrás: sirve para cualquier caja con data-fecha --- */
+
+const cuentaHtml = (fechaIso, textoFin) =>
+  `<div class="cuenta-js" data-fecha="${esc(fechaIso)}" data-fin="${esc(textoFin)}"></div>`;
+
+function actualizarCuenta() {
+  const dos = (n) => String(n).padStart(2, "0");
+  document.querySelectorAll(".cuenta-js").forEach((caja) => {
+    let resto = Math.floor((new Date(caja.dataset.fecha) - Date.now()) / 1000);
+    if (resto <= 0) {
+      caja.innerHTML = `<p class="cuenta-fin">${esc(caja.dataset.fin)}</p>`;
+      return;
+    }
+    const d = Math.floor(resto / 86400); resto %= 86400;
+    const h = Math.floor(resto / 3600);  resto %= 3600;
+    const m = Math.floor(resto / 60);    const s = resto % 60;
+    caja.innerHTML = `
+      <div class="cuenta" role="timer" aria-label="Cuenta atrás">
+        <div><b>${d}</b><span>días</span></div>
+        <div><b>${dos(h)}</b><span>horas</span></div>
+        <div><b>${dos(m)}</b><span>min</span></div>
+        <div><b>${dos(s)}</b><span>seg</span></div>
+      </div>`;
+  });
+}
+
+/* --- Fórmula 1 --- */
+
+function proximaF1(compacta = false) {
   const c = estado.mundial.proximaCarrera;
-  if (!c) { $("#proxima").innerHTML = ""; return; }
+  if (!c) return `<p class="ronda">Temporada ${esc(estado.mundial.temporada)}</p><h2>Temporada terminada</h2>`;
 
-  const trazado = c.trazado ? `
+  const trazado = !compacta && c.trazado ? `
     <div class="trazado" aria-hidden="true">
       <svg viewBox="0 0 220 130">
         <path d="${esc(c.trazado)}"/>
@@ -237,48 +307,24 @@ function pintarProxima() {
       </svg>
     </div>` : "";
 
-  const sesiones = (c.sesiones || []).map((s) => `
+  const sesiones = compacta ? "" : `<ul class="sesiones">${(c.sesiones || []).map((s) => `
     <li class="${s.nombre === "Carrera" ? "carrera" : ""}">
       <span>${esc(s.nombre)}</span><span>${fmtHora.format(new Date(s.fecha))}</span>
-    </li>`).join("");
+    </li>`).join("")}</ul>`;
 
-  $("#proxima").innerHTML = `
+  return `
     <p class="ronda">Ronda ${c.ronda} de ${estado.mundial.totalRondas}</p>
     <h2>${esc(c.nombre)}</h2>
     <p class="lugar">${esc(c.circuito)}, ${esc(c.pais)}</p>
     ${trazado}
-    <div id="cuenta"></div>
-    <ul class="sesiones">${sesiones}</ul>`;
-
-  actualizarCuenta();
+    ${cuentaHtml(c.fecha, "Carrera en marcha o terminada")}
+    ${sesiones}`;
 }
 
-function actualizarCuenta() {
-  const caja = $("#cuenta");
-  const c = estado.mundial?.proximaCarrera;
-  if (!caja || !c) return;
-  let resto = Math.floor((new Date(c.fecha) - Date.now()) / 1000);
-  if (resto <= 0) {
-    caja.innerHTML = `<p class="cuenta-fin">Carrera en marcha o terminada</p>`;
-    return;
-  }
-  const d = Math.floor(resto / 86400); resto %= 86400;
-  const h = Math.floor(resto / 3600);  resto %= 3600;
-  const m = Math.floor(resto / 60);    const s = resto % 60;
-  const dos = (n) => String(n).padStart(2, "0");
-  caja.innerHTML = `
-    <div class="cuenta" role="timer" aria-label="Tiempo hasta la carrera">
-      <div><b>${d}</b><span>días</span></div>
-      <div><b>${dos(h)}</b><span>horas</span></div>
-      <div><b>${dos(m)}</b><span>min</span></div>
-      <div><b>${dos(s)}</b><span>seg</span></div>
-    </div>`;
-}
-
-function pintarTorre() {
+function filasF1(limite) {
   const filas = estado.tabla === "pilotos" ? estado.mundial.pilotos : estado.mundial.constructores;
   const seguidos = SECCIONES.filter((s) => s.codigo);
-  $("#torre").innerHTML = (filas || []).map((f) => {
+  return (filas || []).slice(0, limite).map((f) => {
     const seguido = seguidos.find((s) => s.codigo === f.codigo);
     const nombre = estado.tabla === "pilotos"
       ? `${esc(f.nombre)}<small>${esc(f.equipo)}</small>`
@@ -293,9 +339,9 @@ function pintarTorre() {
   }).join("");
 }
 
-function pintarCalendario() {
-  const proxima = estado.mundial.proximaCarrera?.ronda;
-  $("#calendario").innerHTML = (estado.mundial.calendario || []).map((c) => {
+function calendarioF1() {
+  const proxima = estado.mundial.proximaCarrera?.ronda ?? Infinity;
+  return `<ol class="calendario">${(estado.mundial.calendario || []).map((c) => {
     const clase = c.ronda < proxima ? "pasada" : c.ronda === proxima ? "siguiente" : "";
     return `
       <li class="${clase}">
@@ -303,7 +349,152 @@ function pintarCalendario() {
         <span>${esc(c.nombre)}${c.ganador ? `<span class="ganador">Ganó ${esc(c.ganador)}</span>` : ""}</span>
         <span class="f">${fmtDia.format(new Date(c.fecha))}</span>
       </li>`;
-  }).join("");
+  }).join("")}</ol>`;
+}
+
+/* --- Otros campeonatos (F2, F3…) --- */
+
+function proximaOtro(c) {
+  const r = c.calendario.find((x) => x.ronda === c.proximaRonda);
+  if (!r) {
+    const primero = c.pilotos[0];
+    return `
+      <p class="ronda">Temporada ${esc(c.temporada)} terminada</p>
+      <h2>${primero ? `Campeón: ${esc(primero.nombre)}` : esc(c.nombre)}</h2>
+      ${primero ? `<p class="lugar">${primero.puntos} puntos</p>` : ""}`;
+  }
+  return `
+    <p class="ronda">Ronda ${r.ronda} de ${c.totalRondas}</p>
+    <h2>${esc(r.lugar)}</h2>
+    <p class="lugar">${esc(r.pais)} · ${rangoFechas(r.inicio, r.fin)}</p>
+    ${cuentaHtml(`${r.inicio}T00:00:00`, "Fin de semana en marcha")}`;
+}
+
+// Equipos solo si el campeonato los tiene y está elegida esa pestaña
+const verEquipos = (c) => estado.tabla === "constructores" && c.equipos?.length > 0;
+
+function filasOtro(c, limite, segunPestana = false) {
+  // Equipos: se muestran todos (son pocos); pilotos: los primeros
+  const filas = segunPestana && verEquipos(c) ? c.equipos : c.pilotos.slice(0, limite);
+  return filas.map((p) => `
+    <li style="--color:${colorCampeonato(c.id)}">
+      <span class="pos">${p.pos}</span>
+      <span class="franja"></span>
+      <span class="nombre">${esc(p.nombre)}</span>
+      <span class="puntos">${p.puntos}</span>
+    </li>`).join("");
+}
+
+function calendarioOtro(c) {
+  const proxima = c.proximaRonda ?? Infinity;
+  return `<ol class="calendario">${c.calendario.map((r) => {
+    const clase = r.ronda < proxima ? "pasada" : r.ronda === proxima ? "siguiente" : "";
+    return `
+      <li class="${clase}">
+        <span class="r">${r.ronda}</span>
+        <span>${esc(r.lugar)}<span class="ganador">${esc(r.pais)}</span></span>
+        <span class="f">${rangoFechas(r.inicio, r.fin)}</span>
+      </li>`;
+  }).join("")}</ol>`;
+}
+
+/* --- Bloque completo de un campeonato: próxima ronda, clasificación y calendario --- */
+
+function bloqueCompleto(id) {
+  if (id === "F1") {
+    return `
+      <section class="bloque proxima">${proximaF1()}</section>
+      <section class="bloque">
+        <div class="bloque-cab">
+          <h2>Mundial</h2>
+          <div class="pestanas" role="tablist">
+            <button role="tab" aria-selected="${estado.tabla === "pilotos"}" data-tabla="pilotos">Pilotos</button>
+            <button role="tab" aria-selected="${estado.tabla === "constructores"}" data-tabla="constructores">Equipos</button>
+          </div>
+        </div>
+        <ol class="torre">${filasF1()}</ol>
+      </section>
+      <section class="bloque">
+        <div class="bloque-cab"><h2>Calendario</h2></div>
+        ${calendarioF1()}
+      </section>`;
+  }
+  const c = otroCampeonato(id);
+  if (!c) {
+    // Campeonato sin datos todavía (la Fórmula E, por ahora)
+    return `
+      <section class="bloque proxima" style="--acento:${colorCampeonato(id)}">
+        <p class="campeonato-nombre">${esc(NOMBRES_CAMPEONATO[id] || id)}</p>
+        <h2>Datos próximamente</h2>
+        <p class="lugar">Pronto podrás ver aquí la clasificación y el calendario de este campeonato.</p>
+      </section>`;
+  }
+  return `
+    <section class="bloque proxima" style="--acento:${colorCampeonato(id)}">
+      <p class="campeonato-nombre">${esc(c.nombre)}</p>
+      ${proximaOtro(c)}
+    </section>
+    <section class="bloque">
+      <div class="bloque-cab">
+        <h2>Clasificación</h2>
+        ${c.equipos?.length ? `
+        <div class="pestanas" role="tablist">
+          <button role="tab" aria-selected="${estado.tabla === "pilotos"}" data-tabla="pilotos">Pilotos</button>
+          <button role="tab" aria-selected="${estado.tabla === "constructores"}" data-tabla="constructores">Equipos</button>
+        </div>` : ""}
+      </div>
+      <ol class="torre">${filasOtro(c, 10, true)}</ol>
+      ${verEquipos(c) ? "" : `<p class="nota-torre">10 primeros</p>`}
+    </section>
+    <section class="bloque">
+      <div class="bloque-cab"><h2>Calendario</h2></div>
+      ${calendarioOtro(c)}
+    </section>`;
+}
+
+/* --- Columna lateral (ordenador) y vista «Mundial» (móvil) --- */
+
+function pintarLateral() {
+  if (!estado.mundial) return;
+  let html = "";
+  if (estado.filtro === "mundial") {
+    // Pestañas por campeonato, todas desplegadas; la F1 por defecto
+    const ids = campeonatosDisponibles();
+    if (!ids.includes(estado.pestanaMundial)) estado.pestanaMundial = "F1";
+    html += `<div class="pestanas-mundial" role="tablist">${ids.map((id) => `
+      <button role="tab" data-campeonato="${id}" aria-selected="${id === estado.pestanaMundial}"
+              style="--color:${colorCampeonato(id)}">${id}</button>`).join("")}</div>`;
+    html += bloqueCompleto(estado.pestanaMundial);
+  } else {
+    html += bloqueCompleto(campeonatoDeSeccion(estado.filtro));
+  }
+  if (estado.mundial.ejemplo) html += `<p class="aviso-datos">Datos del Mundial de ejemplo</p>`;
+  $("#lateral").innerHTML = html;
+  actualizarCuenta();
+}
+
+/* --- Tarjeta compacta del campeonato (solo móvil): secciones F1, F2, F3 y FE --- */
+
+function tarjetaCampeonato() {
+  if (!estado.mundial) return "";
+  const id = estado.filtro;
+  if (!["F1", "F2", "F3", "FE"].includes(id)) return "";
+  if (id !== "F1" && !otroCampeonato(id)) return "";
+
+  const abierta = estado.tarjetaAbierta === id;
+  const titulo = id === "F1" ? "Mundial de Fórmula 1" : `Campeonato de ${NOMBRES_CAMPEONATO[id]}`;
+  const plegada = id === "F1"
+    ? `${proximaF1(true)}<ol class="torre">${filasF1(3)}</ol>`
+    : `${proximaOtro(otroCampeonato(id))}<ol class="torre">${filasOtro(otroCampeonato(id), 3)}</ol>`;
+
+  return `
+    <section class="tarjeta-campeonato" style="--color:${colorCampeonato(id)}">
+      <p class="tc-titulo">${titulo}</p>
+      ${abierta ? `<div class="tc-completo">${bloqueCompleto(id)}</div>` : `<div class="tc-plegada">${plegada}</div>`}
+      <button class="tc-boton" data-desplegar="${id}" aria-expanded="${abierta}">
+        ${abierta ? "Ocultar" : "Ver clasificación y calendario"}
+      </button>
+    </section>`;
 }
 
 /* ---------- Pie: año y correo ---------- */
@@ -439,25 +630,27 @@ function actualizarHoras() {
 
 async function cargarDatos() {
   try {
-    const [datos, mundial] = await Promise.all([cargar("data/noticias.json"), cargar("data/mundial.json")]);
+    const [datos, mundial, otros] = await Promise.all([
+      cargar("data/noticias.json"),
+      cargar("data/mundial.json"),
+      cargar("data/campeonatos.json").catch(() => null)   // opcional: si no existe, solo se muestra la F1
+    ]);
 
     // Si no ha cambiado nada desde la última carga, no se vuelve a pintar (así las fotos no parpadean)
-    const huella = `${datos.actualizado}|${mundial.actualizado ?? ""}`;
+    const huella = `${datos.actualizado}|${mundial.actualizado ?? ""}|${otros?.actualizado ?? ""}`;
     if (huella === estado.huella) { estado.ultimaCarga = Date.now(); return; }
     estado.huella = huella;
     estado.noticias = datos.noticias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     estado.mundial = mundial;
+    estado.campeonatos = otros?.campeonatos ?? [];
     estado.ultimaCarga = Date.now();
 
     $("#actualizado").textContent = datos.ejemplo
       ? "Noticias de ejemplo"
       : `Actualizado el ${fmtAct.format(new Date(datos.actualizado))}`;
-    $("#aviso-datos").textContent = mundial.ejemplo ? "Datos del Mundial de ejemplo" : "";
 
     pintarPrincipal();
-    pintarProxima();
-    pintarTorre();
-    pintarCalendario();
+    pintarLateral();
   } catch (err) {
     console.error(err);
     // Si ya había datos (p. ej. sin conexión un momento), se dejan los que había
