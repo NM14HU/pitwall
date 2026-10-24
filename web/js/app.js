@@ -214,7 +214,35 @@ function cambiarFiltro(id) {
   pintarLateral();
   history.replaceState(null, "", id === "todo" ? location.pathname : `#${id}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
+  contarSeccion(id);
 }
+
+/* ---------- Estadísticas (GoatCounter) ---------- */
+
+// Cada sección cuenta como una página: /F1, /Alonso, /mundial…
+function contarSeccion(id) {
+  if (id === "todo" || !window.goatcounter?.count) return;
+  window.goatcounter.count({ path: `/${id}`, title: seccion(id)?.nombre || id });
+}
+
+// No contar las visitas propias: cinco toques seguidos en «NM14» del pie activan o desactivan
+// el recuento en este dispositivo (lo mismo que hace GoatCounter con #toggle-goatcounter).
+// Sirve también dentro de la app instalada, donde no se puede escribir una dirección
+let toquesFirma = 0, relojFirma;
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#firma")) return;
+  clearTimeout(relojFirma);
+  relojFirma = setTimeout(() => (toquesFirma = 0), 1500);
+  if (++toquesFirma < 5) return;
+  toquesFirma = 0;
+  try {
+    const ignorar = localStorage.getItem("skipgc") !== "t";
+    if (ignorar) localStorage.setItem("skipgc", "t"); else localStorage.removeItem("skipgc");
+    alert(ignorar
+      ? "Listo: las visitas de este dispositivo ya no se cuentan."
+      : "Las visitas de este dispositivo vuelven a contarse.");
+  } catch {}
+});
 
 document.addEventListener("click", (e) => {
   const filtro = e.target.closest("[data-filtro]");

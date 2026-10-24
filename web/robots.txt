@@ -1,0 +1,5 @@
+# Pit Wall: todo el sitio se puede rastrear
+User-agent: *
+Allow: /
+
+Sitemap: https://pitwall.nm14.es/sitemap.xml

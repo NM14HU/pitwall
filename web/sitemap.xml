@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mapa del sitio para los buscadores: Pit Wall es una sola página -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://pitwall.nm14.es/</loc>
+    <changefreq>hourly</changefreq>
+  </url>
+</urlset>
