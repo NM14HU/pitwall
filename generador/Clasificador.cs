@@ -13,13 +13,13 @@ public sealed class Clasificador
     static readonly string[] OtrasCategorias = ["F2", "F3", "FE"];
     static readonly string[] Pilotos = ["Alonso", "Sainz"];
 
-    readonly Dictionary<string, (Regex Incluir, Regex? Excluir)> reglas;
+    readonly Dictionary<string, (Regex Incluir, Regex? Excluir, Regex? Fuertes)> reglas;
 
     public Clasificador(Dictionary<string, Regla> reglasConfig)
     {
         reglas = reglasConfig
             .Where(r => r.Value.Incluir.Count > 0)
-            .ToDictionary(r => r.Key, r => (Construir(r.Value.Incluir)!, Construir(r.Value.Excluir)));
+            .ToDictionary(r => r.Key, r => (Construir(r.Value.Incluir)!, Construir(r.Value.Excluir), Construir(r.Value.Fuertes)));
     }
 
     public static int Orden(string seccion) =>
@@ -65,8 +65,11 @@ public sealed class Clasificador
         return etiquetas.OrderBy(Orden).ToList();
     }
 
+    // Cuenta si aparece alguna palabra de la sección y ninguna excluida; una palabra «fuerte»
+    // (p. ej. «Fórmula 1») hace que cuente aunque también haya una excluida (p. ej. «MotoGP»)
     bool Coincide(string seccion, string texto) =>
-        reglas.TryGetValue(seccion, out var r) && r.Incluir.IsMatch(texto) && !(r.Excluir?.IsMatch(texto) ?? false);
+        reglas.TryGetValue(seccion, out var r) && r.Incluir.IsMatch(texto)
+        && (!(r.Excluir?.IsMatch(texto) ?? false) || (r.Fuertes?.IsMatch(texto) ?? false));
 
     bool Excluido(string seccion, string texto) =>
         reglas.TryGetValue(seccion, out var r) && (r.Excluir?.IsMatch(texto) ?? false);

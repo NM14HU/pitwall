@@ -77,6 +77,9 @@ public sealed class Regla
 {
     public List<string> Incluir { get; set; } = [];
     public List<string> Excluir { get; set; } = [];
+
+    /// <summary>Palabras «fuertes»: si aparecen, la sección cuenta aunque haya alguna palabra de «excluir».</summary>
+    public List<string> Fuertes { get; set; } = [];
 }
 
 /// <summary>Un feed de un medio.</summary>

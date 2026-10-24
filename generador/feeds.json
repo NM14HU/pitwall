@@ -88,7 +88,13 @@
 
   // Palabras que identifican cada sección en titulares y resúmenes
   "reglas": {
-    "F1":     { "incluir": ["F1", "Fórmula 1", "Formula 1", "Formula One", "Gran Premio", "Grand Prix"] },
+    // F1 en los feeds generales y las búsquedas (en los feeds propios de F1 no se aplica):
+    //  - «excluir»: si aparece alguna, no cuenta como F1 (evita, p. ej., el Gran Premio de Australia de MotoGP)
+    //  - «fuertes»: si se nombra la F1 expresamente, cuenta aunque también aparezca una excluida
+    "F1":     { "incluir": ["F1", "Fórmula 1", "Formula 1", "Formula One", "Gran Premio", "Grand Prix"],
+                "excluir": ["MotoGP", "Moto2", "Moto3", "MotoE", "Superbike", "Superbikes", "SBK", "WSBK",
+                            "IndyCar", "NASCAR", "WRC", "rally", "rallye", "Dakar", "WEC", "Le Mans", "Fórmula Regional"],
+                "fuertes": ["F1", "Fórmula 1", "Formula 1", "Formula One"] },
     "F2":     { "incluir": ["F2", "Fórmula 2", "Formula 2"] },
     "F3":     { "incluir": ["F3", "Fórmula 3", "Formula 3"] },
     "FE":     { "incluir": ["Fórmula E", "Formula E", "ePrix", "E-Prix"] },
