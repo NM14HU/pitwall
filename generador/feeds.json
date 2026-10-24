@@ -28,6 +28,17 @@
     "salida": "../web/data/mundial.json",
     "api": "https://api.jolpi.ca/ergast/f1",
     "circuitos": "https://raw.githubusercontent.com/bacinger/f1-circuits/master/f1-circuits.geojson",
+
+    // Curvas numeradas y orientación oficial del trazado (datos de MultiViewer, los que usa FastF1).
+    // Clave de cada circuito en los datos de la F1, por su identificador en Jolpica.
+    // Si falta alguno, el generador intenta averiguarla solo; si no puede, dibuja el trazado sin números.
+    "clavesCircuitos": {
+      "albert_park": 10, "shanghai": 49, "suzuka": 46, "bahrain": 63, "jeddah": 149, "miami": 151,
+      "imola": 6, "monaco": 22, "villeneuve": 23, "catalunya": 15, "red_bull_ring": 19,
+      "silverstone": 2, "hungaroring": 4, "spa": 7, "zandvoort": 55, "monza": 39, "baku": 144,
+      "marina_bay": 61, "americas": 9, "rodriguez": 65, "interlagos": 14, "vegas": 152,
+      "losail": 150, "yas_marina": 70
+    },
     // Color de cada equipo en la clasificación (por su identificador en la API)
     "coloresEquipos": {
       "mclaren": "#FF8000", "ferrari": "#E8002D", "red_bull": "#3671C6", "mercedes": "#27F4D2",

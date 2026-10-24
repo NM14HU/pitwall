@@ -11,6 +11,15 @@ public sealed class ConfigMundial
     public string Salida { get; set; } = "../web/data/mundial.json";
     public string Api { get; set; } = "https://api.jolpi.ca/ergast/f1";
     public string Circuitos { get; set; } = "https://raw.githubusercontent.com/bacinger/f1-circuits/master/f1-circuits.geojson";
+
+    /// <summary>Datos de MultiViewer (los que usa FastF1): trazado, curvas numeradas y orientación oficial.</summary>
+    public string MultiViewer { get; set; } = "https://api.multiviewer.app/api/v1/circuits/{clave}/{temporada}";
+
+    /// <summary>Calendario del servicio oficial de tiempos de la F1, para averiguar la clave de un circuito nuevo.</summary>
+    public string IndiceF1 { get; set; } = "https://livetiming.formula1.com/static/{temporada}/Index.json";
+
+    /// <summary>Clave de cada circuito en los datos de la F1, por el identificador de circuito de Jolpica.</summary>
+    public Dictionary<string, int> ClavesCircuitos { get; set; } = [];
     public Dictionary<string, string> ColoresEquipos { get; set; } = [];
 }
 
@@ -45,7 +54,12 @@ public sealed class GeneradorMundial(HttpClient http, string carpetaProyecto, Co
             if (proxima is not null)
             {
                 string? meta;
-                (trazado, meta) = await TrazadoAsync(proxima.Latitud, proxima.Longitud);
+                List<object>? curvas = null;
+                var mv = await TrazadoMultiViewerAsync(proxima);
+                if (mv is not null)
+                    (trazado, meta, curvas) = mv.Value;
+                else
+                    (trazado, meta) = await TrazadoAsync(proxima.Latitud, proxima.Longitud);
                 proximaJson = new
                 {
                     ronda = proxima.Ronda,
@@ -55,7 +69,8 @@ public sealed class GeneradorMundial(HttpClient http, string carpetaProyecto, Co
                     fecha = proxima.Fecha,
                     sesiones = proxima.Sesiones.OrderBy(s => s.Fecha).Select(s => new { nombre = s.Nombre, fecha = s.Fecha }),
                     trazado,
-                    meta
+                    meta,
+                    curvas
                 };
             }
 
@@ -109,7 +124,7 @@ public sealed class GeneradorMundial(HttpClient http, string carpetaProyecto, Co
     }
 
     sealed record Sesion(string Nombre, DateTimeOffset Fecha);
-    sealed record Carrera(string Temporada, int Ronda, string NombreOriginal, string Circuito, string Pais,
+    sealed record Carrera(string Temporada, int Ronda, string NombreOriginal, string IdCircuito, string Circuito, string Pais,
                           double Latitud, double Longitud, DateTimeOffset Fecha, List<Sesion> Sesiones);
 
     static readonly (string Clave, string Nombre)[] Sesiones =
@@ -136,7 +151,7 @@ public sealed class GeneradorMundial(HttpClient http, string carpetaProyecto, Co
 
             lista.Add(new Carrera(
                 Texto(c, "season"), int.Parse(Texto(c, "round")), Texto(c, "raceName"),
-                Texto(circuito, "circuitName"), Texto(lugar, "country"),
+                Texto(circuito, "circuitId"), Texto(circuito, "circuitName"), Texto(lugar, "country"),
                 Numero(lugar, "lat"), Numero(lugar, "long"), fecha, sesiones));
         }
         return lista.OrderBy(c => c.Ronda).ToList();
@@ -232,6 +247,163 @@ public sealed class GeneradorMundial(HttpClient http, string carpetaProyecto, Co
         if (hora.Length == 0) hora = "12:00:00Z";
         return DateTimeOffset.Parse($"{fecha}T{hora}", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
     }
+
+
+    // ---------- Trazado con curvas numeradas (MultiViewer) ----------
+
+    /// <summary>
+    /// Pide a MultiViewer el trazado, las curvas y la rotación oficial del circuito de la próxima carrera.
+    /// Devuelve null si no hay datos, y entonces se usa el trazado de siempre.
+    /// </summary>
+    async Task<(string, string, List<object>)?> TrazadoMultiViewerAsync(Carrera carrera)
+    {
+        try
+        {
+            int temporada = int.Parse(carrera.Temporada);
+            int? clave = config.ClavesCircuitos.TryGetValue(carrera.IdCircuito, out int k) ? k : await ClaveDesdeIndiceAsync(carrera, temporada);
+            if (clave is null)
+            {
+                Console.WriteLine($"   Curvas: no se conoce la clave del circuito «{carrera.IdCircuito}» (se puede añadir en feeds.json)");
+                return null;
+            }
+
+            // Los datos de una temporada pueden no existir aún: se prueba con las anteriores
+            foreach (int anio in new[] { temporada, temporada - 1, temporada - 2 })
+            {
+                string url = config.MultiViewer.Replace("{clave}", clave.ToString()).Replace("{temporada}", anio.ToString());
+                using var peticion = new HttpRequestMessage(HttpMethod.Get, url);
+                using var respuesta = await http.SendAsync(peticion);
+                if (!respuesta.IsSuccessStatusCode) continue;
+
+                using JsonDocument doc = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+                var resultado = DibujarMultiViewer(doc.RootElement);
+                if (resultado is null) continue;
+
+                string nombre = doc.RootElement.TryGetProperty("circuitName", out JsonElement n) ? n.GetString() ?? "" : "";
+                Console.WriteLine($"   Curvas: {resultado.Value.Item3.Count} (MultiViewer, clave {clave}, {nombre} {anio})");
+                return resultado;
+            }
+            Console.WriteLine($"   Curvas: MultiViewer no tiene datos del circuito (clave {clave})");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"   Curvas: no se han podido leer ({ex.Message})");
+        }
+        return null;
+    }
+
+    /// <summary>Busca la clave del circuito en el calendario oficial de tiempos, por la fecha de la carrera.</summary>
+    async Task<int?> ClaveDesdeIndiceAsync(Carrera carrera, int temporada)
+    {
+        try
+        {
+            string texto = (await http.GetStringAsync(config.IndiceF1.Replace("{temporada}", temporada.ToString()))).TrimStart('\uFEFF');
+            using JsonDocument doc = JsonDocument.Parse(texto);
+            foreach (JsonElement reunion in doc.RootElement.GetProperty("Meetings").EnumerateArray())
+            {
+                bool coincide = reunion.GetProperty("Sessions").EnumerateArray().Any(ses =>
+                    ses.TryGetProperty("StartDate", out JsonElement f) && DateTime.TryParse(f.GetString(), out DateTime fecha)
+                    && Math.Abs((fecha.Date - carrera.Fecha.Date).TotalDays) <= 3);
+                if (coincide) return reunion.GetProperty("Circuit").GetProperty("Key").GetInt32();
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>
+    /// Gira el trazado con la rotación oficial, coloca cada número de curva junto a la pista
+    /// (desplazado según el ángulo que indica MultiViewer) y lo encaja todo en el recuadro de 220 × 130.
+    /// </summary>
+    // Tamaño de los números de curva (en las unidades del recuadro de 220 × 130) y distancia a la pista
+    // (en las unidades de MultiViewer). Si se cambia el radio, cambiarlo también en app.js
+    const double RadioCurva = 5, SeparacionCurva = 620;
+
+    static (string, string, List<object>)? DibujarMultiViewer(JsonElement datos)
+    {
+        const double separacion = SeparacionCurva, radio = RadioCurva;
+        if (!datos.TryGetProperty("x", out JsonElement xs) || !datos.TryGetProperty("y", out JsonElement ys)) return null;
+        var pista = xs.EnumerateArray().Zip(ys.EnumerateArray(), (x, y) => (X: x.GetDouble(), Y: y.GetDouble())).ToList();
+        if (pista.Count < 10) return null;
+
+        double rotacion = datos.TryGetProperty("rotation", out JsonElement r) ? r.GetDouble() * Math.PI / 180 : 0;
+        (double X, double Y) Girar((double X, double Y) p, double angulo) =>
+            (p.X * Math.Cos(angulo) - p.Y * Math.Sin(angulo), p.X * Math.Sin(angulo) + p.Y * Math.Cos(angulo));
+
+        // Curvas: posición en la pista desplazada hacia fuera según su ángulo (como en los ejemplos de FastF1)
+        var curvas = new List<(string Texto, (double X, double Y) Punto)>();
+        if (datos.TryGetProperty("corners", out JsonElement cs))
+        {
+            foreach (JsonElement c in cs.EnumerateArray())
+            {
+                JsonElement pos = c.GetProperty("trackPosition");
+                double angulo = (c.TryGetProperty("angle", out JsonElement a) ? a.GetDouble() : 0) * Math.PI / 180;
+                var desplazamiento = Girar((separacion, 0), angulo);
+                var punto = (pos.GetProperty("x").GetDouble() + desplazamiento.X, pos.GetProperty("y").GetDouble() + desplazamiento.Y);
+                string texto = $"{c.GetProperty("number").GetInt32()}{(c.TryGetProperty("letter", out JsonElement l) ? l.GetString() : "")}";
+                curvas.Add((texto, Girar(punto, rotacion)));
+            }
+        }
+
+        // Giro de la pista y paso a coordenadas de pantalla (en SVG el eje Y va hacia abajo)
+        var girada = pista.Select(p => Girar(p, rotacion)).Select(p => (X: p.X, Y: -p.Y)).ToList();
+        var etiquetas = curvas.Select(c => (c.Texto, P: (X: c.Punto.X, Y: -c.Punto.Y))).ToList();
+
+        // Encaje: el recuadro incluye también los números, con margen para sus circulitos
+        const double ancho = 220, alto = 130, margen = 9;
+        var todos = girada.Concat(etiquetas.Select(e => e.P)).ToList();
+        double minX = todos.Min(p => p.X), maxX = todos.Max(p => p.X), minY = todos.Min(p => p.Y), maxY = todos.Max(p => p.Y);
+        double escala = Math.Min((ancho - 2 * margen) / (maxX - minX), (alto - 2 * margen) / (maxY - minY));
+        double desX = (ancho - (maxX - minX) * escala) / 2, desY = (alto - (maxY - minY) * escala) / 2;
+        (double X, double Y) Plano((double X, double Y) p) => ((p.X - minX) * escala + desX, (p.Y - minY) * escala + desY);
+
+        var plano = girada.Select(Plano).ToList();
+        var ruta = new StringBuilder();
+        var ultimo = plano[0];
+        ruta.Append(FormattableString.Invariant($"M{ultimo.X:0.#} {ultimo.Y:0.#}"));
+        foreach (var p in plano.Skip(1))
+        {
+            if (Math.Abs(p.X - ultimo.X) + Math.Abs(p.Y - ultimo.Y) < 1.2) continue;
+            ruta.Append(FormattableString.Invariant($" L{p.X:0.#} {p.Y:0.#}"));
+            ultimo = p;
+        }
+        ruta.Append(" Z");
+
+        // Línea de meta en el primer punto del trazado
+        var inicio = plano[0];
+        var siguiente = plano.Skip(1).FirstOrDefault(p => Math.Abs(p.X - inicio.X) + Math.Abs(p.Y - inicio.Y) > 0.5, plano[^1]);
+        double dx = siguiente.X - inicio.X, dy = siguiente.Y - inicio.Y, largo = Math.Sqrt(dx * dx + dy * dy);
+        double px = -dy / largo * 7, py = dx / largo * 7;
+        string meta = FormattableString.Invariant($"M{inicio.X - px:0.#} {inicio.Y - py:0.#} L{inicio.X + px:0.#} {inicio.Y + py:0.#}");
+
+        var posiciones = etiquetas.Select(e => Plano(e.P)).ToArray();
+        double minimo = 2 * radio + 0.8;
+        // Los números que se tocan se apartan poco a poco hasta que dejan de pisarse
+        for (int vuelta = 0; vuelta < 60; vuelta++)
+        {
+            bool movido = false;
+            for (int i = 0; i < posiciones.Length; i++)
+                for (int j = i + 1; j < posiciones.Length; j++)
+                {
+                    double ddx = posiciones[j].X - posiciones[i].X, ddy = posiciones[j].Y - posiciones[i].Y;
+                    double d = Math.Sqrt(ddx * ddx + ddy * ddy);
+                    if (d >= minimo) continue;
+                    if (d < 0.01) { ddx = 1; ddy = 0; d = 1; }
+                    double empuje = (minimo - d) / 2;
+                    posiciones[i] = (posiciones[i].X - ddx / d * empuje, posiciones[i].Y - ddy / d * empuje);
+                    posiciones[j] = (posiciones[j].X + ddx / d * empuje, posiciones[j].Y + ddy / d * empuje);
+                    movido = true;
+                }
+            if (!movido) break;
+        }
+        // Que ningún número se salga del recuadro
+        for (int i = 0; i < posiciones.Length; i++)
+            posiciones[i] = (Math.Clamp(posiciones[i].X, radio, ancho - radio), Math.Clamp(posiciones[i].Y, radio, alto - radio));
+
+        var lista = etiquetas.Select((e, i) => (object)new { n = e.Texto, x = Math.Round(posiciones[i].X, 1), y = Math.Round(posiciones[i].Y, 1) }).ToList();
+        return (ruta.ToString(), meta, lista);
+    }
+
 
     // ---------- Trazado del circuito ----------
 

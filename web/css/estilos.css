@@ -578,6 +578,16 @@ h1, h2, h3 {
 
 .aviso-datos { margin: 0; font-size: 0.8rem; color: var(--texto-suave); text-align: center; }
 
+/* Números de curva en el trazado: circulito del color del texto con el número en claro */
+.trazado .curva circle { fill: var(--texto); }
+.trazado .curva text {
+  fill: var(--asfalto);
+  font: 700 6px var(--f-texto, system-ui, sans-serif);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.trazado .curva.larga text { font-size: 4.8px; }
+
 /* ---------- Campeonatos: pestañas, nota y tarjeta compacta del móvil ---------- */
 .pestanas-mundial {
   display: flex;

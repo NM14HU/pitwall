@@ -317,6 +317,11 @@ function proximaF1(compacta = false) {
       <svg viewBox="0 0 220 130">
         <path d="${esc(c.trazado)}"/>
         ${c.meta ? `<path class="meta-linea" d="${esc(c.meta)}"/>` : ""}
+        ${(c.curvas || []).map((v) => `
+          <g class="curva${String(v.n).length > 2 ? " larga" : ""}">
+            <circle cx="${v.x}" cy="${v.y}" r="5"/>
+            <text x="${v.x}" y="${v.y}">${esc(v.n)}</text>
+          </g>`).join("")}
       </svg>
     </div>` : "";
 
