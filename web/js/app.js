@@ -275,6 +275,7 @@ const colorCampeonato = (id) => seccion(id)?.color || "var(--c-f1)";
 const fmtDiaMes = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
 function rangoFechas(inicio, fin) {
   const a = new Date(`${inicio}T12:00:00`), b = new Date(`${fin}T12:00:00`);
+  if (inicio === fin) return fmtDiaMes.format(a);      // carrera de un solo día (Fórmula E)
   return a.getMonth() === b.getMonth()
     ? `${a.getDate()}–${fmtDiaMes.format(b)}`
     : `${fmtDiaMes.format(a)} – ${fmtDiaMes.format(b)}`;
@@ -388,6 +389,13 @@ function proximaOtro(c) {
     ${cuentaHtml(`${r.inicio}T00:00:00`, "Fin de semana en marcha")}`;
 }
 
+// Si un campeonato lleva más de dos días sin poder actualizarse, se indica de cuándo son sus datos
+function datosAntiguos(c) {
+  if (!c.actualizado) return "";
+  const fecha = new Date(c.actualizado);
+  return Date.now() - fecha > 2 * 86400000 ? `Datos del ${fmtDiaMes.format(fecha)}` : "";
+}
+
 // Equipos solo si el campeonato los tiene y está elegida esa pestaña
 const verEquipos = (c) => estado.tabla === "constructores" && c.equipos?.length > 0;
 
@@ -462,7 +470,11 @@ function bloqueCompleto(id) {
         </div>` : ""}
       </div>
       <ol class="torre">${filasOtro(c, 10, true)}</ol>
-      ${verEquipos(c) ? "" : `<p class="nota-torre">10 primeros</p>`}
+      ${(() => {
+        // Nota bajo la clasificación: «Clasificación final 2025-26» (Fórmula E antes de empezar) y «10 primeros»
+        const notas = [c.notaClasificacion, verEquipos(c) ? "" : "10 primeros", datosAntiguos(c)].filter(Boolean);
+        return notas.length ? `<p class="nota-torre">${esc(notas.join(" · "))}</p>` : "";
+      })()}
     </section>
     <section class="bloque">
       <div class="bloque-cab"><h2>Calendario</h2></div>

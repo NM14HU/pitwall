@@ -57,7 +57,12 @@
         "urlEquipos": "https://www.fiaformula2.com/en/standings/{temporada}/teams" },
       { "id": "F3", "nombre": "Fórmula 3",
         "url": "https://www.fiaformula3.com/en/standings/{temporada}/drivers",
-        "urlEquipos": "https://www.fiaformula3.com/en/standings/{temporada}/teams" }
+        "urlEquipos": "https://www.fiaformula3.com/en/standings/{temporada}/teams" },
+      // Fórmula E: desde la web de la FIA. {temporada} es del tipo 2025-2026.
+      // "url" es la página de la temporada (con el calendario) y "urlEquipos" la de clasificaciones
+      { "id": "FE", "nombre": "Fórmula E", "tipo": "fia",
+        "url": "https://www.fia.com/events/abb-fia-formula-e-world-championship/season-{temporada}/abb-fia-formula-e-world-championship",
+        "urlEquipos": "https://www.fia.com/events/abb-fia-formula-e-world-championship/season-{temporada}/standings" }
     ]
   },
 
