@@ -624,6 +624,10 @@ h1, h2, h3 {
 .actualizado-movil { display: none; font-size: 0.8rem; color: var(--texto-suave); }
 
 /* ---------- Pie ---------- */
+/* «NM14»: pulsable para el truco de no contar las visitas propias.
+   En iOS, sin cursor: pointer los toques no llegan, y touch-action evita el zoom del doble toque */
+#firma { cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
 .pie {
   border-top: 1px solid var(--linea);
   color: var(--texto-suave);
