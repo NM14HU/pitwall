@@ -112,6 +112,14 @@ function destacada(n) {
 // Hora de la última actualización junto a «Lo último» (solo se ve en el móvil, donde la cabecera no tiene sitio)
 const fmtSoloHora = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: ZONA });
 const fmtDiaHora = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONA });
+// Marca discreta (punto naranja) delante de «Actualizado…» si este dispositivo no cuenta visitas
+function noCuenta() {
+  try { return localStorage.getItem("skipgc") === "t"; } catch { return false; }
+}
+function marcaNoCuenta() {
+  return noCuenta() ? `<span class="marca-no-cuenta" title="Este dispositivo no cuenta visitas">•</span> ` : "";
+}
+
 function horaActualizacion() {
   if (!estado.actualizado) return "";
   const fecha = new Date(estado.actualizado);
@@ -119,7 +127,7 @@ function horaActualizacion() {
   const texto = mismoDia.format(fecha) === mismoDia.format(new Date())
     ? `Actualizado a las ${fmtSoloHora.format(fecha)}`
     : `Actualizado el ${fmtDiaHora.format(fecha)}`;
-  return `<span class="actualizado-movil">${texto}</span>`;
+  return `<span class="actualizado-movil">${marcaNoCuenta()}${texto}</span>`;
 }
 
 function vistaPortada() {
@@ -241,6 +249,11 @@ document.addEventListener("click", (e) => {
     alert(ignorar
       ? "Listo: las visitas de este dispositivo ya no se cuentan."
       : "Las visitas de este dispositivo vuelven a contarse.");
+    pintarActualizado();
+    document.querySelectorAll(".actualizado-movil").forEach((s) => {
+      s.querySelector(".marca-no-cuenta")?.remove();
+      if (ignorar) s.insertAdjacentHTML("afterbegin", marcaNoCuenta());
+    });
   } catch {}
 });
 
@@ -686,6 +699,12 @@ function actualizarHoras() {
   });
 }
 
+// Hora de actualización de la cabecera (ordenador)
+function pintarActualizado() {
+  if (!estado.textoActualizado) return;
+  $("#actualizado").innerHTML = marcaNoCuenta() + estado.textoActualizado;
+}
+
 async function cargarDatos() {
   try {
     const [datos, mundial, otros] = await Promise.all([
@@ -700,13 +719,14 @@ async function cargarDatos() {
     estado.huella = huella;
     estado.noticias = datos.noticias.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     estado.actualizado = datos.ejemplo ? null : datos.actualizado;
+    estado.textoActualizado = datos.ejemplo
+      ? "Noticias de ejemplo"
+      : `Actualizado el ${fmtAct.format(new Date(datos.actualizado))}`;
     estado.mundial = mundial;
     estado.campeonatos = otros?.campeonatos ?? [];
     estado.ultimaCarga = Date.now();
 
-    $("#actualizado").textContent = datos.ejemplo
-      ? "Noticias de ejemplo"
-      : `Actualizado el ${fmtAct.format(new Date(datos.actualizado))}`;
+    pintarActualizado();
 
     pintarPrincipal();
     pintarLateral();

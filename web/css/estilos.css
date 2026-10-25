@@ -812,3 +812,6 @@ h1, h2, h3 {
   * { transition: none !important; }
 }
 
+
+/* Punto naranja delante de «Actualizado…»: este dispositivo no cuenta visitas (cinco toques en «NM14») */
+.marca-no-cuenta { color: #F26B1D; font-weight: 700; font-size: 1.4em; line-height: 0; vertical-align: -0.12em; }
