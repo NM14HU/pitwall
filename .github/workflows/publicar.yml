@@ -1,4 +1,4 @@
-# Pit Wall: genera las noticias y el Mundial cada hora y publica la web en GitHub Pages
+# Pit Wall: genera las noticias y el Mundial cada media hora y publica la web en GitHub Pages
 name: Actualizar y publicar Pit Wall
 
 on:
@@ -19,11 +19,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publicar:
+  # Trabajo 1: genera los datos y sube la web como paquete
+  generar:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
 
     steps:
       - name: Descargar el proyecto
@@ -59,6 +57,26 @@ jobs:
         with:
           path: web
 
+  # Trabajo 2: publica en GitHub Pages lo que ha subido el trabajo 1
+  publicar:
+    needs: generar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url || steps.reintento.outputs.page_url }}
+
+    steps:
       - name: Publicar
         id: despliegue
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      # Si GitHub aún no encuentra el paquete, espera un minuto y lo vuelve a intentar
+      - name: Esperar antes de reintentar
+        if: steps.despliegue.outcome == 'failure'
+        run: sleep 60
+
+      - name: Reintentar la publicación
+        id: reintento
+        if: steps.despliegue.outcome == 'failure'
         uses: actions/deploy-pages@v4
